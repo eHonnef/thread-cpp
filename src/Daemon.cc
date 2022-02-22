@@ -13,47 +13,55 @@
  * This is a wrapper for the std::thread object.
  * Specialize this class (check out SimplePrint.cc) and then override the process function.
  */
-template <class T> class Daemon {
+template <class T> class CDaemon {
 public:
   /*
    * Data struct to hold the data and the info about on how to process this data (using nMessageID).
    */
-  struct Data {
-    int nPriority; //@todo: priority queue
+  struct SData {
+    int nPriority;
     int nMessageID;
-    T TData;
-    Data(int pnPriority, int pnMessageID, T pTData)
-        : nPriority(pnPriority), nMessageID(pnMessageID), TData(pTData) {}
+    T Data;
+    SData(int p_nPriority, int p_nMessageID, T p_Data)
+        : nPriority(p_nPriority), nMessageID(p_nMessageID), Data(p_Data) {}
   };
 
 private:
-  std::thread m_Thread;                     // Thread object.
-  std::queue<Data> m_Queue;                 // Thread processing queue.
+  /*
+   * Private class that provide the comparison function.
+   * It'll order by ascending.
+   */
+  class CPriorityQueueComparison {
+  public:
+    CPriorityQueueComparison() {}
+    bool operator()(const SData &lData, const SData &rData) {
+      return lData.nPriority > rData.nPriority;
+    }
+  };
+
+private:
+  std::thread m_Thread; // Thread object.
+  std::priority_queue<SData, std::vector<SData>, CPriorityQueueComparison>
+      m_Queue;                              // Thread processing queue.
   std::atomic<bool> m_bIsRunning = false;   // Is this thread running?
   std::atomic<bool> m_bIsSuspended = false; // Is this thread suspended?
-  int m_nRateMs = 10;                       // The thread processing rate, default set for 10 ms.
-  mutable std::mutex m_Mutex;               // Mutex.
+  int m_nRateMs = 10;         // The thread processing rate in milliseconds, default set for 10 ms.
+  mutable std::mutex m_Mutex; // Mutex.
 
+protected:
   /*
    * Safely dequeue a Data object so we can process it.
    * @return a Data object wrapped in the std::optional, if the queue is empty it'll return an empty
    *std::optional.
    */
-  std::optional<Data> dequeue() {
+  std::optional<SData> Dequeue() {
     std::lock_guard<std::mutex> lock(m_Mutex);
     if (m_Queue.empty())
       return {};
-    auto rtn = m_Queue.front();
+    auto rtn = m_Queue.top();
     m_Queue.pop();
     return rtn;
   }
-
-protected:
-  /*
-   * Sleep function.
-   * @param nMs sleep time in milliseconds.
-   */
-  void sleep(int nMs) { std::this_thread::sleep_for(std::chrono::milliseconds(nMs)); }
 
   /*
    * Override this function to process your data inside the thread.
@@ -62,24 +70,24 @@ protected:
    * @see Data
    * @see dequeue()
    */
-  virtual void process(int nMessageID, const Data &data) = 0;
+  virtual void Process(int nMessageID, const SData &Data) = 0;
 
   /*
    * This is the function that the thread object will run.
    */
-  void execute() {
+  void Execute() {
     while (m_bIsRunning) {
       if (m_bIsSuspended) {
-        sleep(50); // If it is suspended we wait a little.
+        Sleep(50); // If it is suspended we wait a little.
         continue;
       }
 
-      std::optional<Data> data = dequeue();
-      if (not data.has_value())
+      std::optional<SData> Data = Dequeue();
+      if (not Data.has_value())
         continue;
-      process((*data).nMessageID, (*data));
+      Process((*Data).nMessageID, (*Data));
 
-      sleep(m_nRateMs);
+      Sleep(m_nRateMs);
     }
   }
 
@@ -87,23 +95,24 @@ public:
   /*
    * Default constructor
    */
-  Daemon() = default;
+  CDaemon() = default;
+
   /*
    * Constructor.
-   * @param nThreadRate set the thread processing rate.
+   * @param nThreadRate set the thread processing rate, in milliseconds.
    * @param bStartSuspended default as true. If set to false the thread will run after construction.
    */
-  Daemon(int nThreadRate, bool bStartSuspended = true) {
-    m_nRateMs = nThreadRate;
+  CDaemon(int nThreadRateMs, bool bStartSuspended = true) {
+    m_nRateMs = nThreadRateMs;
     if (!bStartSuspended)
-      start();
+      Start();
   }
 
   /*
    * Destructor.
    * We clear the queue.
    */
-  virtual ~Daemon() {
+  virtual ~CDaemon() {
     while (!m_Queue.empty())
       m_Queue.pop();
   }
@@ -111,9 +120,9 @@ public:
   /*
    * Starts the thread.
    */
-  void start() {
+  void Start() {
     if (not m_bIsRunning) {
-      m_Thread = std::thread(&Daemon<T>::execute, this);
+      m_Thread = std::thread(&CDaemon<T>::Execute, this);
       m_bIsRunning = true;
     }
   }
@@ -121,52 +130,58 @@ public:
   /*
    * Stop the thread.
    */
-  void stop() { m_bIsRunning = false; }
+  void Stop() { m_bIsRunning = false; }
 
   /*
    * Is this thread running?
    */
-  inline bool isRunning() const { return m_bIsRunning; }
+  inline bool IsRunning() const { return m_bIsRunning; }
 
   /*
    * Is this thread suspended?
    */
-  bool isSuspended() const { return m_bIsSuspended; }
+  bool IsSuspended() const { return m_bIsSuspended; }
 
   /*
    * Suspends the thread.
    */
-  void suspend() { m_bIsSuspended = true; }
+  void Suspend() { m_bIsSuspended = true; }
 
   /*
    * Resume the thread processing.
    */
-  void resume() { m_bIsSuspended = false; }
+  void Resume() { m_bIsSuspended = false; }
 
   /*
    * Is this thread joinable?
    */
-  bool joinable() const { return m_Thread.joinable(); }
+  bool Joinable() const { return m_Thread.joinable(); }
 
   /*
    * Make another thread wait for this one.
    */
-  void join() { m_Thread.join(); }
+  void Join() { m_Thread.join(); }
 
   /*
    * Detach this thread, so it'll run as a daemon.
    * Be careful, other threads will not wait for this one.
    */
-  void detach() { m_Thread.detach(); }
+  void Detach() { m_Thread.detach(); }
+
+  /*
+   * Sleep function.
+   * @param nMs sleep time in milliseconds.
+   */
+  void Sleep(int nMs) { std::this_thread::sleep_for(std::chrono::milliseconds(nMs)); }
 
   /*
    * Enqueue a data object.
    * @param data The data object that'll be processed by this thread.
-   * @see Data
+   * @see SData
    */
-  void safeAddMessage(const Data &data) {
+  void SafeAddMessage(const SData &Data) {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    m_Queue.push(std::move(data));
+    m_Queue.push(std::move(Data));
   }
 };
 

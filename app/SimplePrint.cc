@@ -10,34 +10,36 @@
 
 #include <Daemon.cc>
 
+#define UNUSED(x) (void)(x)
+
 enum MSG { MSG_01, MSG_02, MSG_03 };
 
 /**************
  * SimplePrint class.
  * Example of usage for the Daemon object.
  ***************/
-class SimplePrint : public Daemon<std::string> {
+class CSimplePrint : public CDaemon<std::string> {
 protected:
-  void process(int nMessageID, const Data &data) override {
+  void Process(int nMessageID, const SData &Data) override {
     switch (MSG(nMessageID)) {
     case MSG_01:
-      sleep(500); // Let's pretend we are processing a lot of stuff so we desync the threads
-      std::cout << "MSG_01: " << data.TData.c_str() << std::endl;
+      Sleep(500); // Let's pretend we are processing a lot of stuff so we desync the threads
+      std::cout << "MSG_01: " << Data.Data.c_str() << std::endl;
       break;
 
     case MSG_02:
-      sleep(1000); // Let's pretend we are processing a lot of stuff so we desync the threads
-      std::cout << "MSG_02: " << data.TData.c_str() << std::endl;
+      Sleep(1000); // Let's pretend we are processing a lot of stuff so we desync the threads
+      std::cout << "MSG_02: " << Data.Data.c_str() << std::endl;
       break;
 
     case MSG_03:
-      std::cout << "MSG_03: " << data.TData.c_str() << std::endl;
+      std::cout << "MSG_03: " << Data.Data.c_str() << std::endl;
       break;
     }
   }
 
 public:
-  SimplePrint() : Daemon(0, true) {}
+  CSimplePrint() : CDaemon(0, true) {}
 };
 
 /*
@@ -60,17 +62,17 @@ std::string random_string(size_t length) {
  * Main program, it'll enqueue random strings on the SimplePrint thread.
  */
 int main() {
-  SimplePrint sSP;
+  CSimplePrint sSP;
 
-  sSP.start();
-  sSP.detach(); // Running as a daemon
+  sSP.Start();
+  sSP.Detach(); // Running as a daemon
 
   int nSentMessages = 0;
 
   while (true) {
     // Let's generate some random stuff
-    SimplePrint::Data d(rand() % 10, rand() % 3, random_string(10));
-    sSP.safeAddMessage(d);
+    CSimplePrint::SData d(rand() % 10, rand() % 3, random_string(10));
+    sSP.SafeAddMessage(d);
     nSentMessages += 1;
 
     // Send a burst of 5 messages and wait for 2000ms
