@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string>
 
-#include <Daemon.cc>
+#include <ThreadWrapper/Daemon.cc>
 
 #define UNUSED(x) (void)(x)
 

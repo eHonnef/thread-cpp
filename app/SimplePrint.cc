@@ -8,9 +8,7 @@
 #include <stdlib.h>
 #include <string>
 
-#include <Daemon.cc>
-
-#define UNUSED(x) (void)(x)
+#include <ThreadWrapper/Daemon.cc>
 
 enum MSG { MSG_01, MSG_02, MSG_03 };
 
