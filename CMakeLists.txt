@@ -69,32 +69,22 @@ endif()
 # automatically. Keep that in mind when changing files, or explicitly mention them here.
 # file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
-file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
+file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.cc")
 # --------------------------------------------------------------------------------
 #                            Build!
 # --------------------------------------------------------------------------------
 # Compile all sources into a library.
-if (SINGLE_HEADER)
-  add_library(${PROJECT_NAME} INTERFACE)
-elseif (MAIN_PROJECT)
+if (MAIN_PROJECT)
   add_library(${PROJECT_NAME} OBJECT ${HEADERS} ${SOURCES})
 else()
   add_library(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 endif()
 
-if (SINGLE_HEADER)
-  target_include_directories(
-    ${PROJECT_NAME} INTERFACE
-      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-      $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
-  )
-else()
-  target_include_directories(
-    ${PROJECT_NAME} PUBLIC
-      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-      $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
-  )
-endif()
+target_include_directories(
+  ${PROJECT_NAME} PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
+)
 
 # --------------------------------------------------------------------------------
 #                            External dependencies
@@ -104,11 +94,7 @@ endif()
 include(FetchExternal)
 
 # Linking external deps
-if (SINGLE_HEADER)
-  target_link_libraries(${PROJECT_NAME} INTERFACE ${lst_external})
-else()
-  target_link_libraries(${PROJECT_NAME} PRIVATE ${lst_external})
-endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE ${lst_external})
 
 # --------------------------------------------------------------------------------
 #                            If this is the main project
@@ -116,12 +102,7 @@ endif()
 if (MAIN_PROJECT)
   # There's also (probably) doctests within the library, so we need to see this as well.
   if(ENABLE_DOCTESTS)
-    if (SINGLE_HEADER)
-      target_link_libraries(${PROJECT_NAME} INTERFACE doctest)
-    else()
-      target_link_libraries(${PROJECT_NAME} PUBLIC doctest)
-    endif()
-
+    target_link_libraries(${PROJECT_NAME} PUBLIC doctest)
     add_subdirectory(tests)
   endif()
 
@@ -130,11 +111,7 @@ if (MAIN_PROJECT)
     set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
     set(THREADS_PREFER_PTHREAD_FLAG TRUE)
     find_package(Threads REQUIRED)
-    if (SINGLE_HEADER)
-      target_link_libraries(${PROJECT_NAME} INTERFACE Threads::Threads)
-    else()
-      target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
-    endif()
+    target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
   endif()
 
   # Set the compile options you want.
