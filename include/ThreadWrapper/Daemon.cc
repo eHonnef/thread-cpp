@@ -73,6 +73,12 @@ protected:
   virtual void Process(int nMessageID, const SData &Data) = 0;
 
   /*
+   * Override this function to process something before dequeuing something.
+   * It'll run even if the queue is empty.
+   */
+  virtual void ProcessPreamble() {}
+
+  /*
    * This is the function that the thread object will run.
    */
   void Execute() {
@@ -81,6 +87,8 @@ protected:
         Sleep(50); // If it is suspended we wait a little.
         continue;
       }
+
+      ProcessPreamble();
 
       std::optional<SData> Data = Dequeue();
       if (not Data.has_value())
