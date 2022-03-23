@@ -11,7 +11,27 @@ The functions inside [Daemon.cc](include/ThreadWrapper/Daemon.cc) are well comme
 
 Check out [SimplePrint.cc](app/SimplePrint.cc) for an usage example. It implements the producer/consumer problem, the "main" thread generate random strings and the thread wrapper consumes it.
 
-- 1) We generate 10 random strings ("instantly") and print it every 1 second in the other thread context.
-- 2) You can post manually strings in the thread via `std::cin`, if you don't want to, just type `exit`.
-  - 2.1) If you want to suspend the thread, for 5 seconds, type `sleep`.
-- 3) After typing `exit` you will `stop` the thread, it'll wait to finish the queue, then press `enter` to exit the program.
+- 1 - We generate 10 random strings ("instantly") and print it every 1 second in the other thread context.
+- 2 - You can post manually strings in the thread via `std::cin`, if you don't want to, just type `exit`.
+  - 2.1 - If you want to suspend the thread, for 5 seconds, type `sleep`.
+- 3 - After typing `exit` you will `stop` the thread, it'll wait to finish the queue, then press `enter` to exit the program.
+
+## To import in your project
+
+Using CMake's `FetchContent`:
+
+```cmake
+FetchContent_Declare(ThreadWrapper
+  GIT_REPOSITORY "hhttps://github.com/eHonnef/thread-cpp"
+  GIT_TAG "master"
+  GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(ThreadWrapper)
+target_link_libraries(${PROJECT_NAME} PUBLIC ThreadWrapper)
+```
+
+And then you can include the header:
+
+```cpp
+#include <ThreadWrapper/Daemon.cc>
+```
