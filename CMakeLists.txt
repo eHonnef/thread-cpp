@@ -31,6 +31,7 @@ option(ENABLE_WARNINGS_SETTINGS "Allow target_set_warnings to add flags and defi
 option(ENABLE_LTO "Enable link time optimization" ON)
 option(ENABLE_DOCTESTS "Include tests in the library. Setting this to OFF will remove all doctest related code." OFF)
 option(ENABLE_THREADS "Enable multithreading" ON)
+set(ENABLE_THREADS ON)
 
 # <Change> Is this a single header lib?
 # If ON, then you can remove the src/ folder
