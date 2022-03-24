@@ -24,7 +24,7 @@ protected:
   }
 
 public:
-  std::optional<SData> Dequeue() { return CDaemon<std::string>::Dequeue(); }
+  bool TryDequeue(SData &Data) { return CDaemon<std::string>::TryDequeue(Data); }
 };
 
 void EnqueueData(int nPriority, int nMsgID, CPriorityTest &PriorityTest) {
@@ -55,11 +55,9 @@ int main() {
   EnqueueData(1, nMsgID++, objDaemon);
   EnqueueData(1, nMsgID++, objDaemon);
 
-  auto Data = objDaemon.Dequeue();
-  do {
-    std::cout << (*Data).Data.c_str() << std::endl;
-    Data = objDaemon.Dequeue();
-  } while (Data.has_value());
+  CPriorityTest::SData Data;
+  while (objDaemon.TryDequeue(Data))
+    std::cout << Data.Data.c_str() << std::endl;
 
   return 0;
 }

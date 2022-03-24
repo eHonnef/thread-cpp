@@ -28,6 +28,8 @@ public:
 
     SData(int p_nPriority, int p_nMessageID, T p_Data)
         : nPriority(p_nPriority), nMessageID(p_nMessageID), Data(p_Data) {}
+
+    SData() = default;
   };
 
 private:
@@ -88,16 +90,20 @@ protected:
 
   /*
    * Safely dequeue a Data object so we can process it.
-   * @return a Data object wrapped in the std::optional, if the queue is empty it'll return an empty
-   *std::optional.
+   * @param reference to a variable, it'll receive the top item of the queue.
+   * @return true if there is data.
    */
-  std::optional<SData> Dequeue() {
-    std::lock_guard<std::mutex> lock(m_Mutex);
-    if (m_Queue.empty())
-      return {};
-    auto rtn = m_Queue.top();
-    m_Queue.pop();
-    return rtn;
+  bool TryDequeue(SData &Data) {
+    bool bRtn = false;
+    std::scoped_lock<std::mutex> lock(m_Mutex);
+
+    if (!m_Queue.empty()) {
+      Data = m_Queue.top();
+      m_Queue.pop();
+      bRtn = true;
+    }
+
+    return bRtn;
   }
 
   /*
@@ -121,11 +127,9 @@ protected:
    * As default, we finish processing the thread's queue.
    */
   virtual void ProcessThreadEpilogue() {
-    auto Data = Dequeue();
-    while (Data.has_value()) {
-      Process((*Data).nMessageID, (*Data));
-      Data = Dequeue();
-    }
+    SData Data;
+    while (TryDequeue(Data))
+      Process(Data.nMessageID, Data);
   }
 
   /*
@@ -180,10 +184,12 @@ private:
       ProcessPreQueue();
 
       // Process the queue
-      std::optional<SData> Data = Dequeue();
-      if (Data.has_value()) {
-        Process((*Data).nMessageID, (*Data));
-        RegisterDelayToProcess(*Data);
+      {
+        SData Data;
+        if (TryDequeue(Data)) {
+          Process(Data.nMessageID, Data);
+          RegisterDelayToProcess(Data);
+        }
       }
 
       // Process something after the queue
@@ -227,8 +233,8 @@ public:
    */
   void Start() {
     if (not m_bIsRunning) {
-      m_Thread = std::thread(&CDaemon<T>::Execute, this);
       m_bIsRunning = true;
+      m_Thread = std::thread(&CDaemon<T>::Execute, this);
     }
   }
 
@@ -238,7 +244,7 @@ public:
    */
   void Stop() {
     {
-      std::lock_guard<std::mutex> lock(m_Mutex);
+      std::scoped_lock<std::mutex> lock(m_Mutex);
       m_bIsRunning = false;
     }
 
@@ -278,7 +284,7 @@ public:
    */
   void SafeAddMessage(const SData &Data) {
     {
-      std::lock_guard<std::mutex> lock(m_Mutex);
+      std::scoped_lock<std::mutex> lock(m_Mutex);
       m_Queue.push(std::move(Data));
     }
 
