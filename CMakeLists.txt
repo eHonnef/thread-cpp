@@ -64,6 +64,8 @@ if (NOT SINGLE_HEADER)
   set(SOURCES
     src/example.cpp
   )
+else()
+  set(SOURCES)
 endif()
 # You can change for a recursive way with glob.
 # Note: globbing sources is considered bad practice as CMake's generators may not detect new files
